@@ -1,0 +1,16 @@
+{
+  "name": "spotify2deezer",
+  "version": "1.0.0",
+  "description": "Transform spotify urls to deezer urls.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jasmine"
+  },
+  "devDependencies": {
+    "jasmine": "^2.6.0"
+  },
+  "dependencies": {
+    "express": "^4.15.3"
+  }
+}

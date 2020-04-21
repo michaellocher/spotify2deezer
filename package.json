@@ -8,9 +8,9 @@
     "test": "jasmine"
   },
   "devDependencies": {
-    "jasmine": "^2.6.0"
+    "jasmine": "^3.5.0"
   },
-  "dependencies": {
-    "express": "^4.15.3"
+  "optionalDependencies": {
+    "express": "^4.17.1"
   }
 }

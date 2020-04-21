@@ -1,57 +1,75 @@
-/* eslint-disable no-return-assign,class-methods-use-this,import/no-named-default */
 const https = require('https');
 
 class Spotify2Deezer {
-  convert(url) {
-    return this.getSpotifyUrl(url)
-    .then(res => this.getDeezerUrl(res))
-    .catch(console.error);
+  accessToken;
+
+  async convert(url) {
+    try {
+      return this.getDeezerUrl(await this.getSpotifyUrl(url));
+    } catch ({ message }) {
+      console.error(message);
+    }
   }
 
-  getSpotifyUrl(url) {
-    return new Promise((resolve, reject) => {
-      https.get(url, (res) => {
-        res.setEncoding('utf8');
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => resolve(JSON.parse(/Spotify.Entity\s*=\s*([^;]*)/g.exec(body)[1])));
-      })
-      .on('error', reject);
-    });
+  async getSpotifyToken() {
+    const url = 'https://open.spotify.com/get_access_token?reason=transport&productType=web_player';
+    const { accessToken } = await this.get(url);
+    this.accessToken = accessToken;
+    return accessToken;
   }
 
-  getDeezerUrl(data) {
+  async getSpotifyUrl(url) {
+    await this.getSpotifyToken();
+    const urlParts = url.split('/');
+    urlParts[2] = 'api.spotify.com/v1';
+    if (urlParts.length === 7) {
+      urlParts.splice(3, 2);
+    }
+    urlParts[3] += 's';
+    return this.get(urlParts.join('/'));
+  }
+
+  async getDeezerUrl(trackInfo) {
+    if (trackInfo.type === 'playlist') {
+      const results = [];
+      for (const { track } of trackInfo.tracks.items) {
+        results.push(await this.getDeezerUrl(track));
+      }
+      return results;
+    }
+    if (!trackInfo || !('external_ids' in trackInfo)) {
+      throw new Error('No external id present!');
+    }
+    const ids = trackInfo.external_ids;
+    const key = Object.keys(ids)[0];
+    return this.get(`https://api.deezer.com/${trackInfo.type}/${key}:${ids[key]}`);
+  }
+
+  async get(url) {
     return new Promise((resolve, reject) => {
-      const trackInfo = data.track || data;
-      if (trackInfo.type === 'playlist') {
-        return trackInfo.tracks.items
-        .map(item => results => this.getDeezerUrl(item)
-        .then((result) => {
-          results.push(result);
-          return results;
-        })
-        .catch(() => results))
-        .reduce((a, b) => a.then(b).catch(b), Promise.resolve([]))
-        .then(res => resolve(res.filter(t => !('error' in t))));
-      }
-      if (!trackInfo || !('external_ids' in trackInfo)) {
-        reject(new Error('No external id present!'));
-      }
-      const ids = trackInfo.external_ids;
-      const key = Object.keys(ids)[0];
-      return https.get(`https://api.deezer.com/${trackInfo.type}/${key}:${ids[key]}`, (res) => {
-        res.setEncoding('utf8');
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          const json = JSON.parse(body);
-          if ('error' in json) {
-            reject(new Error('Track could not be found!'));
-          }
-          resolve(json);
-        });
-      })
-      .on('error', reject);
+      https.get(
+        url,
+        {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36',
+            'App-Platform': 'WebPlayer',
+            Referer: 'https://open.spotify.com/',
+            Accept: 'application/json',
+            Authorization: `Bearer ${this.accessToken}`,
+          },
+        },
+
+        async (res) => {
+          let data = Buffer.alloc(0);
+          res
+            .on('data', (chunk) => {
+              data = Buffer.concat([data, chunk]);
+            })
+            .on('end', () => resolve(JSON.parse(data.toString())))
+            .on('error', reject);
+        }
+      );
     });
   }
 }

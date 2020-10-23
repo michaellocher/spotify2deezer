@@ -16,9 +16,9 @@ describe('Spotify2Deezer', () => {
   });
 
   it('should convert album url', (done) => {
-    Spotify2Deezer.convert('https://open.spotify.com/album/3CMoiKvY3yIFoXDIIVfzqu')
+    Spotify2Deezer.convert('https://open.spotify.com/album/5daH8iwvl59rDhYWg1iEgf')
     .then((res) => {
-      expect(res.title).toEqual('Music For Cocktails: Ibiza Jazz Lounge');
+      expect(res.title).toEqual('Das goldene Album');
       expect(res.type).toEqual('album');
       expect(res.tracks.data.length).toEqual(15);
       done();

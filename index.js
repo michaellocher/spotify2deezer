@@ -42,7 +42,9 @@ class Spotify2Deezer {
     }
     const ids = trackInfo.external_ids;
     const key = Object.keys(ids)[0];
-    return this.get(`https://api.deezer.com/${trackInfo.type}/${key}:${ids[key]}`);
+    return this.get(
+      `https://api.deezer.com/${trackInfo.type}/${key}:${key === 'upc' ? parseInt(ids[key], 10) : ids[key]}`
+    );
   }
 
   async get(url) {
